@@ -3,11 +3,14 @@ package com.example.restapi
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.widget.Toast
-import okhttp3.Call
-import okhttp3.Callback
-import okhttp3.Response
+import androidx.recyclerview.widget.GridLayoutManager
+import androidx.recyclerview.widget.RecyclerView
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+
 
 class MainActivity : AppCompatActivity() {
     private val dogApiService: DogApiService by lazy {
@@ -30,16 +33,17 @@ class MainActivity : AppCompatActivity() {
         recyclerView.adapter = adapter
 
         dogApiService.getRandomDogImage().enqueue(object : Callback<DogApiResponse> {
-            fun onResponse(call: Call<DogApiResponse>, response: Response<DogApiResponse>) {
+            override fun onResponse(call: Call<DogApiResponse>, response: Response<DogApiResponse>) {
                 if (response.isSuccessful) {
                     images.add(response.body()?.message ?: "")
                     adapter.notifyItemInserted(images.size - 1)
                 }
             }
 
-            fun onFailure(call: Call<DogApiResponse>, t: Throwable) {
+            override fun onFailure(call: Call<DogApiResponse>, t: Throwable) {
                 Toast.makeText(this@MainActivity, "Error: ${t.message}", Toast.LENGTH_LONG).show()
             }
         })
+
     }
 }

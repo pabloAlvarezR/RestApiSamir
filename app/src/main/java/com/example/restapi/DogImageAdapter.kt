@@ -13,16 +13,16 @@ class DogImageAdapter(private val context: Context, private val images: List<Str
         val imageView: ImageView = view.findViewById(R.id.imgPerro)
     }
 
-    fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
         val view = LayoutInflater.from(context).inflate(R.layout.esqueleto_perro, parent, false)
         return ViewHolder(view)
     }
 
-    fun onBindViewHolder(holder: ViewHolder, position: Int) {
+    override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         Glide.with(context)
             .load(images[position])
             .into(holder.imageView)
     }
 
-    fun getItemCount() = images.size
+    override fun getItemCount() = images.size
 }
