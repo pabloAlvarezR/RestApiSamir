@@ -32,11 +32,41 @@ class MainActivity : AppCompatActivity() {
         val adapter = DogImageAdapter(this, images)
         recyclerView.adapter = adapter
 
-        dogApiService.getRandomDogImage().enqueue(object : Callback<DogApiResponse> {
+        val NUM_IMAGES = 10 // Número de imágenes que deseas mostrar
+        var isLoading = false
+
+        recyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
+            override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
+                super.onScrolled(recyclerView, dx, dy)
+                val lastVisibleItemPosition = (recyclerView.layoutManager as GridLayoutManager).findLastVisibleItemPosition()
+                val totalItemCount = recyclerView.adapter?.itemCount ?: 0
+                if (lastVisibleItemPosition == totalItemCount - 1 && !isLoading) {
+                    isLoading = true
+                    dogApiService.getRandomDogImage(NUM_IMAGES).enqueue(object : Callback<DogApiResponse> {
+                        override fun onResponse(call: Call<DogApiResponse>, response: Response<DogApiResponse>) {
+                            if (response.isSuccessful) {
+                                val newImages: List<String> = response.body()?.message?.let { listOf(it) } ?: emptyList()
+                                images.addAll(newImages)
+                                adapter.notifyItemRangeInserted(totalItemCount, newImages.size)
+                                isLoading = false
+                            }
+                        }
+
+                        override fun onFailure(call: Call<DogApiResponse>, t: Throwable) {
+                            Toast.makeText(this@MainActivity, "Error: ${t.message}", Toast.LENGTH_LONG).show()
+                            isLoading = false
+                        }
+                    })
+                }
+            }
+        })
+
+        dogApiService.getRandomDogImage(NUM_IMAGES).enqueue(object : Callback<DogApiResponse> {
             override fun onResponse(call: Call<DogApiResponse>, response: Response<DogApiResponse>) {
                 if (response.isSuccessful) {
-                    images.add(response.body()?.message ?: "")
-                    adapter.notifyItemInserted(images.size - 1)
+                    val newImages: List<String> = response.body()?.message?.let { listOf(it) } ?: emptyList()
+                    images.addAll(newImages)
+                    adapter.notifyItemRangeInserted(0, newImages.size)
                 }
             }
 
@@ -46,4 +76,5 @@ class MainActivity : AppCompatActivity() {
         })
 
     }
+
 }
