@@ -32,7 +32,7 @@ class MainActivity : AppCompatActivity() {
         val adapter = DogImageAdapter(this, images)
         recyclerView.adapter = adapter
 
-        val NUM_IMAGES = 10 // Número de imágenes que deseas mostrar
+        val NUM_IMAGES = 20 // Número de imágenes que deseas mostrar
         var isLoading = false
 
         recyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
