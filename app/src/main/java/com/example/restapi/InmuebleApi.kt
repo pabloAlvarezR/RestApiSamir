@@ -9,21 +9,20 @@ import retrofit2.http.*
 interface InmuebleApi {
     companion object{
         val retrofit = Retrofit.Builder()
-            .baseUrl("http://172.25.96.1:8080/api/")
+            .baseUrl("http://10.10.30.218:8080/api/")
             .addConverterFactory(GsonConverterFactory.create())
             .build()
     }
-
-    @GET("inmuebles/paginable")
-    fun getInmueble(@Query("page") page: Int, @Query("size") size: Int): Call<InmuebleResponse>
-
-    @DELETE("inmuebles/{id}")
-    fun deleteInmueble(@Path("id") id: Int): Call<Void>
+    @GET("inmuebles")
+    fun getImuebles(): Call<List<InmuebleResponse>>
 
     @POST("inmuebles")
-    fun altaInmueble(@Body inmueble: Inmueble): Call<Inmueble>
+    fun altaInmueble(@Body inmueble: InmuebleResponse): Call<InmuebleResponse>
+
+    @DELETE("inmuebles/{id}")
+    fun deleteInmueble(@Path("id") id: Long): Call<Void>
 
     @POST("inmuebles/{id}")
-    fun editarInmueble(@Path("id") id: Int, @Body inmueble: Inmueble): Call<Inmueble>
+    fun editarInmueble(@Path("id") id: Long, @Body inmueble: InmuebleResponse): Call<InmuebleResponse>
 
 }

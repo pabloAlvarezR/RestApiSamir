@@ -15,110 +15,87 @@ import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
 import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
 
 class MainActivity : AppCompatActivity() {
-    private lateinit var bind : ActivityMainBinding
-    private lateinit var adapter: InmuebleAdapter
-    private var currentPage = 0
-    private var isLastPage = false
-    private var isLoading = false
+
+    lateinit var binding: ActivityMainBinding
+    lateinit var adapter: InmuebleAdapter
+    val imuebles = mutableListOf<InmuebleResponse>()
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        bind = ActivityMainBinding.inflate(layoutInflater)
-        setContentView(bind.root)
-
-        adapter = InmuebleAdapter(applicationContext, mutableListOf())
-        bind.rvMain.adapter = adapter
-        bind.rvMain.layoutManager = LinearLayoutManager(applicationContext)
-
-        val inmuebleApiService = InmuebleApi.retrofit.create(InmuebleApi::class.java)
-
-        loadInmuebles(inmuebleApiService)
-
-
-        bind.rvMain.addOnScrollListener(object : RecyclerView.OnScrollListener() {
-            override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
-                super.onScrolled(recyclerView, dx, dy)
-                val layoutManager = recyclerView.layoutManager as LinearLayoutManager
-                val visibleItemCount = layoutManager.childCount
-                val totalItemCount = layoutManager.itemCount
-                val firstVisibleItemPosition = layoutManager.findFirstVisibleItemPosition()
-
-
-                if (!isLoading && !isLastPage && (visibleItemCount + firstVisibleItemPosition) >= totalItemCount && firstVisibleItemPosition >= 0) {
-                    loadInmuebles(inmuebleApiService)
-                }
-            }
-        })
-
-//        bind.fabAnnadir.setOnClickListener{
-//            val inmueble = Inmueble(
-//                idInmueble = -1,
-//                titulo = "Casa de campo",
-//                precio = 100000.0f,
-//                descripcion = "Hermosa casa de campo en un entorno natural",
-//                metrosConstruidos = 150,
-//                metrosUtiles = 120,
-//                ubicacion = "Calle Principal 123",
-//                zona = "Ejido Sur",
-//                fechaPublicacion = "2022-02-02",
-//                habitaciones = 3,
-//                bannos = 2
-//            )
-//            val call = inmuebleApiService.altaInmueble(inmueble)
-//            call.enqueue(object : Callback<Inmueble> {
-//                override fun onResponse(call: Call<Inmueble>, response: Response<Inmueble>) {
-//                    if (response.isSuccessful) {
-//                        val inmuebleResponse = response.body()
-//                        if (inmuebleResponse != null) {
-//                            addInmueble(inmuebleResponse)
-//                            Toast.makeText(applicationContext,response.toString(),Toast.LENGTH_SHORT).show()
-//                        }
-//                    } else {
-//                        Toast.makeText(applicationContext,response.toString(),Toast.LENGTH_SHORT).show()
-//                    }
-//                }
-//
-//                override fun onFailure(call: Call<Inmueble>, t: Throwable) {
-//                    Log.d("INMUEBLE",t.toString())
-//                }
-//            })
-//        }
-
-
+        binding = ActivityMainBinding.inflate(layoutInflater)
+        setContentView(binding.root)
+        initRecyclerView()
+        binding.mostrar.setOnClickListener(){
+            mostrar()
+        }
+        binding.anadir.setOnClickListener(){
+            anadir()
+        }
+    }
+    private fun initRecyclerView(){
+        adapter=InmuebleAdapter(imuebles)
+        binding.rvInmuebles.layoutManager = LinearLayoutManager(this)
+        binding.rvInmuebles.adapter=adapter
     }
 
-    fun addInmueble(inmueble: Inmueble) {
-        Toast.makeText(this,"Inmueble añadido",Toast.LENGTH_SHORT).show()
-        adapter.addInmueble(inmueble)
-    }
 
-    private fun loadInmuebles(inmuebleApiService: InmuebleApi) {
-        isLoading = true
-        val call = inmuebleApiService.getInmueble(currentPage, 4)
+    private fun getRetrofit(): Retrofit {
+        return Retrofit.Builder()
+            .baseUrl("http://10.10.30.218:8080/api/")
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+    }
+    private fun anadir(){
+        val inmueble = InmuebleResponse("piso por defecto", 1000.0f, "Descripción", 80L, 70.0, "Ubicación", "Zona", "2022-01-01", 3L, 2L, -1)
+        Log.d("ANADIR", inmueble.toString()) // Agregamos un log para verificar el objeto
+        val call = getRetrofit().create(InmuebleApi::class.java).altaInmueble(inmueble)
         call.enqueue(object : Callback<InmuebleResponse> {
             override fun onResponse(call: Call<InmuebleResponse>, response: Response<InmuebleResponse>) {
                 if (response.isSuccessful) {
-                    val inmuebles = response.body()?.content.orEmpty()
-                    if (inmuebles.isNotEmpty()) {
-                        if (currentPage == 0) {
-                            adapter.setInmuebles(inmuebles.toMutableList())
-                        } else {
-                            adapter.addInmuebles(inmuebles.toMutableList())
-                        }
-                        currentPage++
-                    } else {
-                        isLastPage = true
-                    }
+                    // el post se realizó exitosamente
+                    val inmuebleResponse = response.body()
+                    mostrar()
+                } else {
+                    // hubo un error en la respuesta
+                    showError()
                 }
-                isLoading = false
             }
 
             override fun onFailure(call: Call<InmuebleResponse>, t: Throwable) {
-                isLoading = false
-                Log.d("INMUEBLE", t.toString())
-                Toast.makeText(applicationContext, "Error al cargar inmuebles", Toast.LENGTH_SHORT).show()
+                Log.e("ANADIR", "Error al enviar la petición", t)
+                // hubo un error en la petición
+                showError()
             }
         })
+    }
+    private fun mostrar() {
+        val call = getRetrofit().create(InmuebleApi::class.java).getImuebles()
+        call.enqueue(object : Callback<List<InmuebleResponse>> {
+            override fun onResponse(
+                call: Call<List<InmuebleResponse>>,
+                response: Response<List<InmuebleResponse>>
+            ) {
+                if (response.isSuccessful) {
+                    val inmueblesI: List<InmuebleResponse>? = response.body()
+                    imuebles.clear()
+                    if (inmueblesI != null) {
+                        imuebles.addAll(inmueblesI)
+                    }
+                    adapter.notifyDataSetChanged()
+                } else {
+
+                }
+            }
+
+            override fun onFailure(call: Call<List<InmuebleResponse>>, t: Throwable) {
+                Log.e("ANADIR", "Error al enviar la petición", t)
+                showError()
+            }
+        })
+    }
+    private fun showError() {
+        Toast.makeText(this, "Ha ocurrido un error", Toast.LENGTH_SHORT).show()
     }
 }
