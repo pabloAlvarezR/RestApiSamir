@@ -8,16 +8,63 @@
         android:id="@+id/cardView"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_weight="1"
         tools:layout_editor_absoluteX="1dp"
         tools:layout_editor_absoluteY="95dp">
 
-        <ImageView
-            android:id="@+id/imgPerro"
-            android:layout_width="300dp"
-            android:layout_height="300dp"
-            android:layout_gravity="center"
-            android:layout_margin="10dp"
-            android:src="@drawable/perro" />
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/tituloTextView"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:padding="10dp"
+                android:text="Titulo en negrita"
+                android:textSize="18sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/precioTextView"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingStart="10dp"
+                android:paddingEnd="10dp"
+                android:paddingBottom="10dp"
+                android:text="Precio"
+                android:textSize="16sp" />
+
+            <TextView
+                android:id="@+id/descripcionTextView"
+                android:layout_width="match_parent"
+                android:layout_height="94dp"
+                android:paddingStart="10dp"
+                android:paddingEnd="10dp"
+                android:paddingBottom="10dp"
+                android:text="Descripcion"
+                android:textSize="14sp" />
+
+            <TextView
+                android:id="@+id/metrosTextView"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingStart="10dp"
+                android:paddingEnd="10dp"
+                android:paddingBottom="10dp"
+                android:text="Metros útiles"
+                android:textSize="14sp" />
+
+            <Button
+                android:id="@+id/button"
+                android:layout_width="153dp"
+                android:layout_height="wrap_content"
+                android:backgroundTint="#AF0D0D"
+                android:text="Button" />
+
+        </LinearLayout>
+
     </androidx.cardview.widget.CardView>
 
 </androidx.appcompat.widget.LinearLayoutCompat>

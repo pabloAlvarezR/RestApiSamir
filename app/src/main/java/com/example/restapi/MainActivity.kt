@@ -2,79 +2,123 @@ package com.example.restapi
 
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.util.Log
+import android.widget.TextView
 import android.widget.Toast
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.GridLayoutManager
+import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.example.restapi.databinding.ActivityMainBinding
+import kotlinx.coroutines.launch
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
 import retrofit2.Retrofit
-import retrofit2.converter.gson.GsonConverterFactory
-
 
 class MainActivity : AppCompatActivity() {
-    private val dogApiService: DogApiService by lazy {
-        Retrofit.Builder()
-            .baseUrl("https://dog.ceo/api/")
-            .addConverterFactory(GsonConverterFactory.create())
-            .build()
-            .create(DogApiService::class.java)
-    }
-
+    private lateinit var bind : ActivityMainBinding
+    private lateinit var adapter: InmuebleAdapter
+    private var currentPage = 0
+    private var isLastPage = false
+    private var isLoading = false
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
+        bind = ActivityMainBinding.inflate(layoutInflater)
+        setContentView(bind.root)
 
-        val recyclerView = findViewById<RecyclerView>(R.id.recyclerView)
-        recyclerView.layoutManager = GridLayoutManager(this, 2)
+        adapter = InmuebleAdapter(applicationContext, mutableListOf())
+        bind.rvMain.adapter = adapter
+        bind.rvMain.layoutManager = LinearLayoutManager(applicationContext)
 
-        val images = mutableListOf<String>()
-        val adapter = DogImageAdapter(this, images)
-        recyclerView.adapter = adapter
+        val inmuebleApiService = InmuebleApi.retrofit.create(InmuebleApi::class.java)
 
-        val NUM_IMAGES = 10 // Número de imágenes que deseas mostrar
-        var isLoading = false
+        loadInmuebles(inmuebleApiService)
 
-        recyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
+
+        bind.rvMain.addOnScrollListener(object : RecyclerView.OnScrollListener() {
             override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
                 super.onScrolled(recyclerView, dx, dy)
-                val lastVisibleItemPosition = (recyclerView.layoutManager as GridLayoutManager).findLastVisibleItemPosition()
-                val totalItemCount = recyclerView.adapter?.itemCount ?: 0
-                if (lastVisibleItemPosition == totalItemCount - 1 && !isLoading) {
-                    isLoading = true
-                    dogApiService.getRandomDogImage(NUM_IMAGES).enqueue(object : Callback<DogApiResponse> {
-                        override fun onResponse(call: Call<DogApiResponse>, response: Response<DogApiResponse>) {
-                            if (response.isSuccessful) {
-                                val newImages: List<String> = response.body()?.message?.let { listOf(it) } ?: emptyList()
-                                images.addAll(newImages)
-                                adapter.notifyItemRangeInserted(totalItemCount, newImages.size)
-                                isLoading = false
-                            }
-                        }
+                val layoutManager = recyclerView.layoutManager as LinearLayoutManager
+                val visibleItemCount = layoutManager.childCount
+                val totalItemCount = layoutManager.itemCount
+                val firstVisibleItemPosition = layoutManager.findFirstVisibleItemPosition()
 
-                        override fun onFailure(call: Call<DogApiResponse>, t: Throwable) {
-                            Toast.makeText(this@MainActivity, "Error: ${t.message}", Toast.LENGTH_LONG).show()
-                            isLoading = false
-                        }
-                    })
+
+                if (!isLoading && !isLastPage && (visibleItemCount + firstVisibleItemPosition) >= totalItemCount && firstVisibleItemPosition >= 0) {
+                    loadInmuebles(inmuebleApiService)
                 }
             }
         })
 
-        dogApiService.getRandomDogImage(NUM_IMAGES).enqueue(object : Callback<DogApiResponse> {
-            override fun onResponse(call: Call<DogApiResponse>, response: Response<DogApiResponse>) {
-                if (response.isSuccessful) {
-                    val newImages: List<String> = response.body()?.message?.let { listOf(it) } ?: emptyList()
-                    images.addAll(newImages)
-                    adapter.notifyItemRangeInserted(0, newImages.size)
-                }
-            }
+//        bind.fabAnnadir.setOnClickListener{
+//            val inmueble = Inmueble(
+//                idInmueble = -1,
+//                titulo = "Casa de campo",
+//                precio = 100000.0f,
+//                descripcion = "Hermosa casa de campo en un entorno natural",
+//                metrosConstruidos = 150,
+//                metrosUtiles = 120,
+//                ubicacion = "Calle Principal 123",
+//                zona = "Ejido Sur",
+//                fechaPublicacion = "2022-02-02",
+//                habitaciones = 3,
+//                bannos = 2
+//            )
+//            val call = inmuebleApiService.altaInmueble(inmueble)
+//            call.enqueue(object : Callback<Inmueble> {
+//                override fun onResponse(call: Call<Inmueble>, response: Response<Inmueble>) {
+//                    if (response.isSuccessful) {
+//                        val inmuebleResponse = response.body()
+//                        if (inmuebleResponse != null) {
+//                            addInmueble(inmuebleResponse)
+//                            Toast.makeText(applicationContext,response.toString(),Toast.LENGTH_SHORT).show()
+//                        }
+//                    } else {
+//                        Toast.makeText(applicationContext,response.toString(),Toast.LENGTH_SHORT).show()
+//                    }
+//                }
+//
+//                override fun onFailure(call: Call<Inmueble>, t: Throwable) {
+//                    Log.d("INMUEBLE",t.toString())
+//                }
+//            })
+//        }
 
-            override fun onFailure(call: Call<DogApiResponse>, t: Throwable) {
-                Toast.makeText(this@MainActivity, "Error: ${t.message}", Toast.LENGTH_LONG).show()
-            }
-        })
 
     }
 
+    fun addInmueble(inmueble: Inmueble) {
+        Toast.makeText(this,"Inmueble añadido",Toast.LENGTH_SHORT).show()
+        adapter.addInmueble(inmueble)
+    }
+
+    private fun loadInmuebles(inmuebleApiService: InmuebleApi) {
+        isLoading = true
+        val call = inmuebleApiService.getInmueble(currentPage, 4)
+        call.enqueue(object : Callback<InmuebleResponse> {
+            override fun onResponse(call: Call<InmuebleResponse>, response: Response<InmuebleResponse>) {
+                if (response.isSuccessful) {
+                    val inmuebles = response.body()?.content.orEmpty()
+                    if (inmuebles.isNotEmpty()) {
+                        if (currentPage == 0) {
+                            adapter.setInmuebles(inmuebles.toMutableList())
+                        } else {
+                            adapter.addInmuebles(inmuebles.toMutableList())
+                        }
+                        currentPage++
+                    } else {
+                        isLastPage = true
+                    }
+                }
+                isLoading = false
+            }
+
+            override fun onFailure(call: Call<InmuebleResponse>, t: Throwable) {
+                isLoading = false
+                Log.d("INMUEBLE", t.toString())
+                Toast.makeText(applicationContext, "Error al cargar inmuebles", Toast.LENGTH_SHORT).show()
+            }
+        })
+    }
 }
